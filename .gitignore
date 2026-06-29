@@ -1,0 +1,47 @@
+# PowerShell
+*.ps1.xml
+*.ps1.ps1xml
+*.psm1
+[Dd]ebug/
+[Rr]elease/
+[Oo]bj/
+
+# HTML Reports
+reports/*.html
+
+# Keep reports directory
+!reports/.gitkeep
+
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PowerShell Profile
+profile.ps1
+
+# Log files
+*.log
+
+# Backup files
+*.bak
+*.tmp
+*~
+
+# NuGet
+packages/
+*.nupkg
+
+# Test
+TestResults/
+*.trx
+
+# Mac
+.DS_Store
+
+# Linux
+*~
