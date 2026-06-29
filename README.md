@@ -61,7 +61,9 @@ KBU Deployment Validator is a read-only PowerShell tool that validates whether a
   <img src="docs/screenshot-dashboard.png" alt="Deployment Dashboard" width="800"><br><br>
   <strong>Operating System Validation</strong><br>
   <img src="docs/screenshot-os.png" alt="OS Validation" width="800"><br><br>
-  <strong>Required Software & Security</strong><br>
+  <strong>Required Software</strong><br>
+  <img src="docs/screenshot-software.png" alt="Required Software Validation" width="800"><br><br>
+  <strong>Security</strong><br>
   <img src="docs/screenshot-security.png" alt="Security Validation" width="800"><br><br>
   <strong>Deployment Summary</strong><br>
   <img src="docs/screenshot-summary.png" alt="Deployment Summary" width="800">
