@@ -161,6 +161,17 @@ Kaspersky • ESET • Bitdefender • Sophos • McAfee • Norton • Trend Mi
 
 ---
 
+## Contributing
+
+Contributions are welcome. Please ensure:
+
+- All changes are **read-only** — the tool must never modify system state
+- PowerShell 5.1 compatibility is maintained (no PS 7+ exclusive features)
+- HTML output remains self-contained (no external CDN dependencies)
+- Report generation stays under 5 seconds on typical hardware
+
+---
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
