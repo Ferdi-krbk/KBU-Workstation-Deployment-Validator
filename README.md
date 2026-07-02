@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License">
-  <img src="https://img.shields.io/badge/Version-1.2.0-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.2.1-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/Pester-5.x-5EAD4C?style=for-the-badge" alt="Pester">
 </p>
 
@@ -66,12 +66,16 @@ KBU-Deployment-Validator/
 │   └── ReportRenderer.ps1               # HTML and JSON report generation
 │
 ├── tests/                               # Test suite
-│   ├── validator.tests.ps1              # Pester 5.x tests (35+ tests)
+│   ├── validator.tests.ps1              # Pester 5.x tests (45+ tests)
 │   ├── TestConfig.ps1                   # Test helpers and mocks
 │   └── TESTING.md                       # Testing documentation
 │
+├── legacy/                              # Archived previous versions
+│   ├── DeploymentValidator_legacy.ps1   # v3.0.0 monolithic script
+│   └── Run_KBU_Validation_legacy.bat    # v3.0.0 launcher
+│
 ├── config.json                          # Configuration file
-├── run_validator.bat                    # Double-click launcher
+├── run_validator.bat                    # Double-click launcher (current)
 ├── CHANGELOG.md                         # Version history
 ├── README.md                            # Project documentation
 ├── LICENSE                              # MIT License
@@ -278,12 +282,12 @@ This project was developed as part of a second-year Software Engineering interns
 | **Modular Design**     | 8 focused modules with clear responsibilities         |
 | **Configuration Management** | JSON-driven config with validation and defaults |
 | **Error Handling**     | Graceful degradation, UNKNOWN fallbacks, no crashes   |
-| **Automated Testing**  | 35+ Pester 5 tests with mocking for system components |
+| **Automated Testing**  | 45+ Pester 5 tests with mocking for system components |
 | **Technical Writing**  | README, TESTING.md, CHANGELOG.md, comment-based help  |
 | **PowerShell**         | CIM/WMI queries, registry access, structured objects  |
 | **Report Generation**  | HTML/CSS dashboard, JSON export for integration       |
 | **Version Control**    | Git with meaningful commits and releases              |
-| **Real-World Impact**  | Tool is used in production at Karabuk University IT   |
+| **Real-World Impact**  | Designed and tested for Karabuk University IT Department workstation validation scenarios |
 
 ---
 

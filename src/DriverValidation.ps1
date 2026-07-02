@@ -138,6 +138,7 @@ function Test-KBUDrivers {
 
     $checks += [PSCustomObject]@{
         Name     = "Unknown Devices"
+        WeightKey = "UnknownDevices"
         Status   = $uStatus
         Detail   = $uDetail
         Fix      = $uFix
@@ -161,6 +162,7 @@ function Test-KBUDrivers {
 
     $checks += [PSCustomObject]@{
         Name     = "Disabled Devices"
+        WeightKey = "DisabledDevices"
         Status   = $dStatus
         Detail   = $dDetail
         Fix      = $dFix
@@ -192,6 +194,7 @@ function Test-KBUDrivers {
 
     $checks += [PSCustomObject]@{
         Name     = "Driver Errors"
+        WeightKey = "DriverErrors"
         Status   = $oStatus
         Detail   = $oDetail
         Fix      = $oFix

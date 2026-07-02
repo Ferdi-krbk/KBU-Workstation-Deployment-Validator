@@ -35,18 +35,24 @@ function Get-KBUSecurityData {
     #>
 
     $result = [PSCustomObject]@{
-        DefenderOn    = $false
-        ThirdPartyAV  = $null
-        HasAV         = $false
-        Firewall      = $false
-        BitLocker     = $false
-        SecureBoot    = $null
-        TPM           = $null
+        DefenderOn              = $false
+        ThirdPartyAV            = $null
+        HasAV                   = $false
+        Firewall                = $false
+        BitLocker               = $false
+        SecureBoot              = $null
+        TPM                     = $null
+        SecurityCenterAvailable = $false
+        DefenderDataAvailable   = $false
+        FirewallDataAvailable   = $false
+        AVDataAvailable         = $false
     }
 
     $secCenterAV = $null
     try {
         $avProducts = Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct -ErrorAction Stop
+        $result.SecurityCenterAvailable = $true
+        $result.AVDataAvailable = $true
         $secCenterAV = $avProducts | Where-Object {
             $_.displayName -notmatch "Windows Defender|Microsoft Defender"
         } | Select-Object -First 1
@@ -62,6 +68,8 @@ function Get-KBUSecurityData {
 
     try {
         $mp = Get-MpComputerStatus -ErrorAction Stop
+        $result.DefenderDataAvailable = $true
+        $result.AVDataAvailable = $true
         $result.DefenderOn = $mp.AntivirusEnabled
         if (-not $result.HasAV) {
             $result.HasAV = $result.DefenderOn
@@ -73,6 +81,7 @@ function Get-KBUSecurityData {
 
     try {
         $fwProfiles = @(Get-NetFirewallProfile -ErrorAction Stop | Where-Object { -not $_.Enabled })
+        $result.FirewallDataAvailable = $true
         $result.Firewall = ($fwProfiles.Count -eq 0)
     }
     catch {
@@ -136,9 +145,21 @@ function Test-KBUSecurity {
     $data   = Get-KBUSecurityData
     $checks = @()
 
-    if ($data.ThirdPartyAV) {
+    if (-not $data.AVDataAvailable) {
         $avCheck = [PSCustomObject]@{
             Name     = "Antivirus"
+            WeightKey = "Antivirus"
+            Status   = $Script:StatusUnknown
+            Detail   = "Unable to determine"
+            Fix      = "Verify antivirus protection is installed and enabled."
+            Severity = ""
+            Category = "Security"
+        }
+    }
+    elseif ($data.ThirdPartyAV) {
+        $avCheck = [PSCustomObject]@{
+            Name     = "Antivirus"
+            WeightKey = "Antivirus"
             Status   = $Script:StatusPass
             Detail   = "Third-party Antivirus Detected ($($data.ThirdPartyAV))"
             Fix      = ""
@@ -149,6 +170,7 @@ function Test-KBUSecurity {
     elseif ($data.DefenderOn) {
         $avCheck = [PSCustomObject]@{
             Name     = "Antivirus"
+            WeightKey = "Antivirus"
             Status   = $Script:StatusPass
             Detail   = "Windows Defender Active"
             Fix      = ""
@@ -159,6 +181,7 @@ function Test-KBUSecurity {
     else {
         $avCheck = [PSCustomObject]@{
             Name     = "Antivirus"
+            WeightKey = "Antivirus"
             Status   = $Script:StatusFail
             Detail   = "No Antivirus Detected"
             Fix      = "Install or enable antivirus protection."
@@ -168,9 +191,21 @@ function Test-KBUSecurity {
     }
     $checks += $avCheck
 
-    if ($data.Firewall) {
+    if (-not $data.FirewallDataAvailable) {
         $fwCheck = [PSCustomObject]@{
             Name     = "Firewall"
+            WeightKey = "Firewall"
+            Status   = $Script:StatusUnknown
+            Detail   = "Unable to determine"
+            Fix      = "Verify Windows Firewall is enabled."
+            Severity = ""
+            Category = "Security"
+        }
+    }
+    elseif ($data.Firewall) {
+        $fwCheck = [PSCustomObject]@{
+            Name     = "Firewall"
+            WeightKey = "Firewall"
             Status   = $Script:StatusPass
             Detail   = "All Profiles On"
             Fix      = ""
@@ -181,6 +216,7 @@ function Test-KBUSecurity {
     else {
         $fwCheck = [PSCustomObject]@{
             Name     = "Firewall"
+            WeightKey = "Firewall"
             Status   = $Script:StatusFail
             Detail   = "Disabled"
             Fix      = "Enable firewall on all network profiles."
@@ -193,6 +229,7 @@ function Test-KBUSecurity {
     if ($data.BitLocker) {
         $blCheck = [PSCustomObject]@{
             Name     = "BitLocker"
+            WeightKey = "BitLocker"
             Status   = $Script:StatusPass
             Detail   = "Encrypted"
             Fix      = ""
@@ -203,6 +240,7 @@ function Test-KBUSecurity {
     else {
         $blCheck = [PSCustomObject]@{
             Name     = "BitLocker"
+            WeightKey = "BitLocker"
             Status   = $Script:StatusWarning
             Detail   = "Not Enabled"
             Fix      = "Enable BitLocker drive encryption."
@@ -215,6 +253,7 @@ function Test-KBUSecurity {
     if ($null -eq $data.SecureBoot) {
         $sbCheck = [PSCustomObject]@{
             Name     = "Secure Boot"
+            WeightKey = "SecureBoot"
             Status   = $Script:StatusUnknown
             Detail   = "Unable to determine"
             Fix      = "Check Secure Boot status in UEFI/BIOS."
@@ -225,6 +264,7 @@ function Test-KBUSecurity {
     elseif ($data.SecureBoot) {
         $sbCheck = [PSCustomObject]@{
             Name     = "Secure Boot"
+            WeightKey = "SecureBoot"
             Status   = $Script:StatusPass
             Detail   = "Enabled"
             Fix      = ""
@@ -235,6 +275,7 @@ function Test-KBUSecurity {
     else {
         $sbCheck = [PSCustomObject]@{
             Name     = "Secure Boot"
+            WeightKey = "SecureBoot"
             Status   = $Script:StatusWarning
             Detail   = "Disabled"
             Fix      = "Enable Secure Boot in UEFI/BIOS for enhanced security."
@@ -247,6 +288,7 @@ function Test-KBUSecurity {
     if ($null -eq $data.TPM) {
         $tpCheck = [PSCustomObject]@{
             Name     = "TPM"
+            WeightKey = "TPM"
             Status   = $Script:StatusUnknown
             Detail   = "Unable to verify"
             Fix      = "Check TPM status in UEFI/BIOS or tpm.msc."
@@ -257,6 +299,7 @@ function Test-KBUSecurity {
     elseif ($data.TPM.Ready) {
         $tpCheck = [PSCustomObject]@{
             Name     = "TPM"
+            WeightKey = "TPM"
             Status   = $Script:StatusPass
             Detail   = "Present and Ready"
             Fix      = ""
@@ -267,6 +310,7 @@ function Test-KBUSecurity {
     elseif ($data.TPM.Present) {
         $tpCheck = [PSCustomObject]@{
             Name     = "TPM"
+            WeightKey = "TPM"
             Status   = $Script:StatusWarning
             Detail   = "Present, Not Ready"
             Fix      = "Initialize TPM in BIOS/UEFI."
@@ -277,6 +321,7 @@ function Test-KBUSecurity {
     else {
         $tpCheck = [PSCustomObject]@{
             Name     = "TPM"
+            WeightKey = "TPM"
             Status   = $Script:StatusUnknown
             Detail   = "Not Found"
             Fix      = "TPM 2.0 is recommended for Windows 11 and security features."

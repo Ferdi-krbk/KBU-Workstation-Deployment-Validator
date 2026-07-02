@@ -69,9 +69,14 @@ function New-TestCheck {
         [string]$Detail = "",
         [string]$Fix = "",
         [string]$Severity = "",
-        [string]$Category = "System"
+        [string]$Category = "System",
+        [string]$WeightKey
     )
-    return [PSCustomObject]@{ Name = $Name; Status = $Status; Detail = $Detail; Fix = $Fix; Severity = $Severity; Category = $Category }
+    $obj = [PSCustomObject]@{ Name = $Name; Status = $Status; Detail = $Detail; Fix = $Fix; Severity = $Severity; Category = $Category }
+    if ($WeightKey) {
+        $obj | Add-Member -MemberType NoteProperty -Name "WeightKey" -Value $WeightKey
+    }
+    return $obj
 }
 
 function New-TestInstalledSoftware {

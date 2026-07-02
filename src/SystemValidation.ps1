@@ -191,6 +191,7 @@ function Test-KBUSystem {
 
     $osEditionCheck = [PSCustomObject]@{
         Name     = "Windows Edition"
+        WeightKey = "WindowsEdition"
         Status   = if ($pro) { $Script:StatusPass } else { $Script:StatusWarning }
         Detail   = $os.Edition
         Fix      = if ($isHome) { "Pro/Enterprise recommended for enterprise environments." } else { "" }
@@ -199,10 +200,18 @@ function Test-KBUSystem {
     }
     $checks += $osEditionCheck
 
-    $verOk = [version]$os.Version -ge [version]$Config.Thresholds.MinOSVersion
+    $verStr = $os.Version
+    if ($verStr -eq "Unknown" -or -not $verStr) {
+        $verOk = $false
+    }
+    else {
+        try { $verOk = [version]$verStr -ge [version]$Config.Thresholds.MinOSVersion }
+        catch { $verOk = $false }
+    }
 
     $osVerCheck = [PSCustomObject]@{
         Name     = "Windows Version"
+        WeightKey = "WindowsVersion"
         Status   = if ($verOk) { $Script:StatusPass } else { $Script:StatusFail }
         Detail   = "$($os.Version) (Build $($os.Build))"
         Fix      = if (-not $verOk) { "Upgrade to Windows 10 or 11." } else { "" }
@@ -215,6 +224,7 @@ function Test-KBUSystem {
 
     $osBuildCheck = [PSCustomObject]@{
         Name     = "Build Number"
+        WeightKey = "BuildNumber"
         Status   = if ($bldOk) { $Script:StatusPass } else { $Script:StatusWarning }
         Detail   = $os.Build
         Fix      = if (-not $bldOk) { "Install latest Windows updates." } else { "" }
@@ -227,6 +237,7 @@ function Test-KBUSystem {
 
     $osArchCheck = [PSCustomObject]@{
         Name     = "Architecture"
+        WeightKey = "Architecture"
         Status   = if ($archOk) { $Script:StatusPass } else { $Script:StatusFail }
         Detail   = $os.Arch
         Fix      = if (-not $archOk) { "64-bit Windows required." } else { "" }
@@ -237,6 +248,7 @@ function Test-KBUSystem {
 
     $osActCheck = [PSCustomObject]@{
         Name     = "Activation"
+        WeightKey = "Activation"
         Status   = if ($os.Activated) { $Script:StatusPass } else { $Script:StatusFail }
         Detail   = if ($os.Activated) { "Licensed" } else { "Not Activated" }
         Fix      = if (-not $os.Activated) { "Activate Windows with a valid license." } else { "" }
@@ -245,11 +257,12 @@ function Test-KBUSystem {
     }
     $checks += $osActCheck
 
-    $bootDays  = if ($os.BootDays -and $os.BootDays -ge 0) { $os.BootDays } else { 999 }
+    $bootDays  = if ($null -ne $os.BootDays -and $os.BootDays -ge 0) { $os.BootDays } else { 999 }
     $maxUptime = $Config.Thresholds.MaxUptimeDays
 
     $osBootCheck = [PSCustomObject]@{
         Name     = "Last Reboot"
+        WeightKey = "LastReboot"
         Status   = if ($bootDays -le $maxUptime) { $Script:StatusPass } else { $Script:StatusWarning }
         Detail   = $os.LastBoot
         Fix      = if ($bootDays -gt $maxUptime) { "Restart to apply pending updates." } else { "" }

@@ -13,7 +13,7 @@
 
 .NOTES
     Author:  Karabuk University IT Department
-    Version: 1.2.0
+    Version: 1.2.1
     License: MIT
     READ-ONLY — No system modifications are made.
 #>
@@ -28,10 +28,10 @@ param(
 $Script:StartTime = Get-Date
 $Script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Load module functions
+# Load module functions — Logger.ps1 must load first (others depend on it)
 $moduleFiles = @(
-    "Config.ps1",
     "Logger.ps1",
+    "Config.ps1",
     "SoftwareValidation.ps1",
     "DriverValidation.ps1",
     "SecurityValidation.ps1",
@@ -44,7 +44,9 @@ foreach ($modFile in $moduleFiles) {
     $modPath = Join-Path $Script:ScriptDir $modFile
     if (Test-Path -LiteralPath $modPath) {
         . $modPath
-        Write-KBUDebug "Loaded module: $modFile"
+        if (Get-Command -Name "Write-KBUDebug" -ErrorAction SilentlyContinue) {
+            Write-KBUDebug "Loaded module: $modFile"
+        }
     }
     else {
         Write-Warning "Module not found: $modFile"

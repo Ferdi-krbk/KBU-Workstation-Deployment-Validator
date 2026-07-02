@@ -2,6 +2,24 @@
 
 All notable changes to the KBU Deployment Validator project.
 
+## v1.2.1 — 2026-07-02
+
+### Fixed
+- **Module loading order** — Logger.ps1 now loads before all other modules, preventing undefined function calls
+- **Scoring weight key mismatch** — Added `WeightKey` property to all check objects; `Get-KBUScore` now resolves weights via normalized key lookup so configured weights in `config.json` apply correctly
+- **Security UNKNOWN logic** — Added `AVDataAvailable`, `FirewallDataAvailable`, `DefenderDataAvailable` flags to `Get-KBUSecurityData`; antivirus and firewall return `UNKNOWN` instead of `FAIL` when data is truly unavailable
+- **Uptime BootDays bug** — Fixed `if ($os.BootDays -and $os.BootDays -ge 0)` which treated `BootDays = 0` as falsy, causing 999-day fallback. Changed to `$null -ne` guard
+- **Safe OS version/build parsing** — Gracefully handles `"Unknown"` version strings with `try/catch` fallback
+
+### Changed
+- **Archived legacy files** — Moved `DeploymentValidator.ps1` and `Run_KBU_Validation.bat` to `legacy/` directory
+- **README production claim** — Replaced unverified production claim with "Designed and tested for" wording
+- **Test count updated** — Corrected from "35+" to "45+" across README and docs
+
+### Added
+- **Stronger scoring tests** — Added Pester tests proving blocking issues force NOT READY, UNKNOWN checks do not create blockers, and warning checks reduce score without forcing NOT READY
+- **WeightKey test coverage** — Tests verifying `"Windows Version"`, `"Secure Boot"`, and `"Unknown Devices"` resolve to correct configured weights
+
 ## v1.2.0 — 2026-07-02
 
 ### Added

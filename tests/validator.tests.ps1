@@ -16,8 +16,8 @@ BeforeAll {
     $testRoot  = Join-Path $PSScriptRoot ""
     $srcRoot   = Join-Path $testRoot "..\src"
 
-    . (Join-Path $srcRoot "Config.ps1")
     . (Join-Path $srcRoot "Logger.ps1")
+    . (Join-Path $srcRoot "Config.ps1")
     . (Join-Path $srcRoot "SoftwareValidation.ps1")
     . (Join-Path $srcRoot "DriverValidation.ps1")
     . (Join-Path $srcRoot "SecurityValidation.ps1")
@@ -224,7 +224,7 @@ Describe "Driver Validation Module" {
 Describe "Security Validation Module" {
 
     Context "Antivirus Detection" {
-        It "Antivirus found - returns PASS" {
+        It "Antivirus found (third-party) - returns PASS" {
             Mock Get-CimInstance {
                 param($Namespace, $ClassName)
                 if ($Namespace -eq "root/SecurityCenter2") {
@@ -240,14 +240,30 @@ Describe "Security Validation Module" {
             $avCheck.Status | Should -Be "PASS"
         }
 
-        It "Antivirus unavailable - returns FAIL (not UNKNOWN)" {
-            Mock Get-CimInstance { return @() }
-            Mock Get-MpComputerStatus { return [PSCustomObject]@{ AntivirusEnabled = $false } }
+        It "Antivirus not installed but data available - returns FAIL" {
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                if ($Namespace -eq "root/SecurityCenter2") {
+                    return @()
+                }
+                return $null
+            }
+            Mock Get-MpComputerStatus { return [PSCustomObject]@{ AntivirusEnabled = $false; AntivirusSignatureLastUpdated = 0 } }
             Mock Get-NetFirewallProfile { return @() }
 
             $result = Test-KBUSecurity -Config $testConfig
             $avCheck = $result.Checks | Where-Object { $_.Name -eq "Antivirus" }
             $avCheck.Status | Should -Be "FAIL"
+        }
+
+        It "Antivirus data unavailable - returns UNKNOWN" {
+            Mock Get-CimInstance { throw "Access denied" }
+            Mock Get-MpComputerStatus { throw "Service not running" }
+            Mock Get-NetFirewallProfile { return @() }
+
+            $result = Test-KBUSecurity -Config $testConfig
+            $avCheck = $result.Checks | Where-Object { $_.Name -eq "Antivirus" }
+            $avCheck.Status | Should -Be "UNKNOWN"
         }
 
         It "UNKNOWN status does not become false FAILURE for Secure Boot" {
@@ -280,6 +296,16 @@ Describe "Security Validation Module" {
             $result = Test-KBUSecurity -Config $testConfig
             $fwCheck = $result.Checks | Where-Object { $_.Name -eq "Firewall" }
             $fwCheck.Status | Should -Be "PASS"
+        }
+
+        It "Firewall data unavailable - returns UNKNOWN" {
+            Mock Get-CimInstance { return @() }
+            Mock Get-MpComputerStatus { return [PSCustomObject]@{ AntivirusEnabled = $true } }
+            Mock Get-NetFirewallProfile { throw "Service not available" }
+
+            $result = Test-KBUSecurity -Config $testConfig
+            $fwCheck = $result.Checks | Where-Object { $_.Name -eq "Firewall" }
+            $fwCheck.Status | Should -Be "UNKNOWN"
         }
     }
 }
@@ -335,6 +361,19 @@ Describe "System Validation Module" {
             $result = Test-KBUSystem -Config $testConfig
             $diskCheck = $result.Checks | Where-Object { $_.Name -like "C:*" }
             $diskCheck.Status | Should -Be "PASS"
+        }
+
+        It "BootDays = 0 is treated as healthy PASS, not as 999-day fallback" {
+            Mock Get-KBUOSInfo {
+                return [PSCustomObject]@{ Edition = "Windows 10 Pro"; Version = "10.0"; Build = "19045"; Arch = "64-bit"; Activated = $true; LastBoot = "Today"; BootDays = 0 }
+            }
+            Mock Get-KBUDiskInfo {
+                return @([PSCustomObject]@{ Drive = "C:"; Label = "Test"; TotalGB = 500; FreeGB = 400; PctFree = 80 })
+            }
+            $result = Test-KBUSystem -Config $testConfig
+            $bootCheck = $result.Checks | Where-Object { $_.Name -eq "Last Reboot" }
+            $bootCheck.Status | Should -Be "PASS"
+            $bootCheck.Detail | Should -Be "Today"
         }
     }
 }
@@ -440,6 +479,91 @@ Describe "Scoring Module" {
             $modules.Count | Should -BeGreaterThan 0
             $sysModule = $modules | Where-Object { $_.Module -eq "System" }
             $sysModule.Status | Should -Be "FAIL"
+        }
+    }
+
+    Context "Scoring Edge Cases" {
+        It "Blocking issue forces NOT READY even when calculated score is high" {
+            $checks = @(
+                (New-TestCheck -Name "Windows Version" -Status "PASS" -WeightKey "WindowsVersion"),
+                (New-TestCheck -Name "Windows Edition" -Status "PASS" -WeightKey "WindowsEdition"),
+                (New-TestCheck -Name "Architecture" -Status "PASS" -WeightKey "Architecture"),
+                (New-TestCheck -Name "Activation" -Status "PASS" -WeightKey "Activation"),
+                (New-TestCheck -Name "Antivirus" -Status "FAIL" -Severity "High" -Fix "Install AV" -WeightKey "Antivirus")
+            )
+            $score = Get-KBUScore -AllChecks $checks -Config $testConfig
+            $score.Decision | Should -Be "NOT READY"
+            $score.BlockingIssues -contains "Antivirus" | Should -BeTrue
+        }
+
+        It "Missing required blocking software appears in BlockingIssues" {
+            $checks = @(
+                (New-TestCheck -Name "TestApp1" -Status "FAIL" -Severity "High" -Fix "Install TestApp1" -Category "Software"),
+                (New-TestCheck -Name "TestApp2" -Status "PASS" -Category "Software"),
+                (New-TestCheck -Name "Windows Version" -Status "PASS" -WeightKey "WindowsVersion")
+            )
+            $score = Get-KBUScore -AllChecks $checks -Config $testConfig
+            $score.Decision | Should -Be "NOT READY"
+            $score.BlockingIssues -contains "TestApp1" | Should -BeTrue
+        }
+
+        It "UNKNOWN security checks do not create blocking issues" {
+            $checks = @(
+                (New-TestCheck -Name "Windows Version" -Status "PASS" -WeightKey "WindowsVersion"),
+                (New-TestCheck -Name "Architecture" -Status "PASS" -WeightKey "Architecture"),
+                (New-TestCheck -Name "Antivirus" -Status "UNKNOWN" -Category "Security"),
+                (New-TestCheck -Name "Secure Boot" -Status "UNKNOWN" -Category "Security"),
+                (New-TestCheck -Name "TPM" -Status "UNKNOWN" -Category "Security")
+            )
+            $score = Get-KBUScore -AllChecks $checks -Config $testConfig
+            $score.BlockingIssues.Count | Should -Be 0
+            $score.UnknownCount | Should -Be 3
+        }
+
+        It "Warning checks reduce score but do not force NOT READY" {
+            $checks = @(
+                (New-TestCheck -Name "Windows Version" -Status "PASS" -WeightKey "WindowsVersion"),
+                (New-TestCheck -Name "Antivirus" -Status "PASS" -WeightKey "Antivirus"),
+                (New-TestCheck -Name "Firewall" -Status "PASS" -WeightKey "Firewall"),
+                (New-TestCheck -Name "BitLocker" -Status "WARNING" -Fix "Enable BitLocker" -Severity "Low" -WeightKey "BitLocker"),
+                (New-TestCheck -Name "Secure Boot" -Status "WARNING" -Fix "Enable Secure Boot" -Severity "Low" -WeightKey "SecureBoot")
+            )
+            $score = Get-KBUScore -AllChecks $checks -Config $testConfig
+            $score.WarnCount | Should -BeGreaterThan 0
+            $score.Decision | Should -Not -Be "NOT READY"
+            $score.BlockingIssues.Count | Should -Be 0
+        }
+
+        It "WeightKey resolves correctly for Windows Version check" {
+            $checks = @(
+                (New-TestCheck -Name "Windows Version" -Status "FAIL" -Severity "High" -WeightKey "WindowsVersion")
+            )
+            $score = Get-KBUScore -AllChecks $checks -Config $testConfig
+            $score.Score | Should -BeLessThan 95
+        }
+
+        It "WeightKey resolves correctly for Secure Boot check" {
+            $checks = @(
+                (New-TestCheck -Name "Secure Boot" -Status "FAIL" -Severity "High" -WeightKey "SecureBoot")
+            )
+            $score = Get-KBUScore -AllChecks $checks -Config $testConfig
+            $score.Score | Should -BeLessThan 100
+        }
+
+        It "WeightKey resolves correctly for Unknown Devices check" {
+            $checks = @(
+                (New-TestCheck -Name "Unknown Devices" -Status "FAIL" -Severity "High" -WeightKey "UnknownDevices")
+            )
+            $score = Get-KBUScore -AllChecks $checks -Config $testConfig
+            $score.Score | Should -BeLessThan 100
+        }
+
+        It "Fallback weight key works when WeightKey not set (spaces stripped)" {
+            $checks = @(
+                (New-TestCheck -Name "WindowsVersion" -Status "FAIL" -Severity "High")
+            )
+            $score = Get-KBUScore -AllChecks $checks -Config $testConfig
+            $score.Score | Should -BeLessThan 100
         }
     }
 }

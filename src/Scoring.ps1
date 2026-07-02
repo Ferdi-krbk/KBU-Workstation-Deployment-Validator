@@ -63,8 +63,18 @@ function Get-KBUScore {
 
     foreach ($check in $AllChecks) {
         $weight = 5
-        if ($weights.PSObject.Properties[$check.Name]) {
-            $weight = $weights.PSObject.Properties[$check.Name].Value
+        $weightKey = if ($check.WeightKey) {
+            $check.WeightKey
+        }
+        elseif ($check.Name) {
+            $check.Name -replace '\s+', ''
+        }
+        else {
+            ""
+        }
+
+        if ($weightKey -and $weights.PSObject.Properties[$weightKey]) {
+            $weight = $weights.PSObject.Properties[$weightKey].Value
         }
         elseif ($check.Category -eq "Software" -and $check.Severity -eq "High") {
             $weight = $weights.RequiredSoftware
