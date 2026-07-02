@@ -220,7 +220,13 @@ function Test-KBUSystem {
     }
     $checks += $osVerCheck
 
-    $bldOk = [int]$os.Build -ge $Config.Thresholds.MinBuildNumber
+    if ($os.Build -match '^\d+$') {
+        $buildNumber = [int]$os.Build
+        $bldOk = $buildNumber -ge $Config.Thresholds.MinBuildNumber
+    }
+    else {
+        $bldOk = $false
+    }
 
     $osBuildCheck = [PSCustomObject]@{
         Name     = "Build Number"
