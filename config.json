@@ -1,0 +1,121 @@
+{
+  "Tool": {
+    "Name": "KBU Deployment Validator",
+    "Version": "1.2.0"
+  },
+  "Branding": {
+    "Organization": "Karabuk University",
+    "Department": "IT Department",
+    "LogoText": "KBU"
+  },
+  "RequiredSoftware": [
+    {
+      "Name": "Microsoft Office",
+      "Patterns": ["Microsoft Office", "Microsoft 365"],
+      "Blocking": true
+    },
+    {
+      "Name": "Java Runtime",
+      "Patterns": ["Java"],
+      "Exclude": ["Auto Updater", "Update"],
+      "Blocking": true
+    },
+    {
+      "Name": "Akia",
+      "Patterns": ["Akia"],
+      "Blocking": true
+    },
+    {
+      "Name": "AnyDesk",
+      "Patterns": ["AnyDesk"],
+      "Blocking": false
+    },
+    {
+      "Name": "enVision",
+      "Patterns": ["enVision"],
+      "Blocking": false
+    },
+    {
+      "Name": "Web Browser",
+      "Patterns": ["Google Chrome", "Mozilla Firefox", "Microsoft Edge"],
+      "Blocking": true
+    }
+  ],
+  "OptionalSoftware": [
+    {
+      "Name": "Adobe Reader",
+      "Patterns": ["Adobe Acrobat", "Adobe Reader"]
+    },
+    {
+      "Name": "7-Zip",
+      "Patterns": ["7-Zip"]
+    },
+    {
+      "Name": "Notepad++",
+      "Patterns": ["Notepad++"]
+    },
+    {
+      "Name": "VLC Media Player",
+      "Patterns": ["VLC media player"]
+    },
+    {
+      "Name": "Adobe Flash Player",
+      "Patterns": ["Adobe Flash"]
+    }
+  ],
+  "Scoring": {
+    "MaxScore": 100,
+    "PassingThreshold": 85,
+    "WarningThreshold": 65,
+    "Weights": {
+      "WindowsEdition": 3,
+      "WindowsVersion": 12,
+      "BuildNumber": 3,
+      "Architecture": 12,
+      "Activation": 10,
+      "LastReboot": 2,
+      "Antivirus": 10,
+      "Firewall": 8,
+      "BitLocker": 3,
+      "SecureBoot": 3,
+      "TPM": 5,
+      "UnknownDevices": 5,
+      "DisabledDevices": 2,
+      "DriverErrors": 5,
+      "RequiredSoftware": 8,
+      "OptionalSoftware": 2
+    },
+    "BlockingSoftware": ["Microsoft Office", "Java Runtime", "Akia", "Antivirus"],
+    "WarnPenaltyFactor": 0.5
+  },
+  "Thresholds": {
+    "DiskFreePercentWarning": 20,
+    "DiskFreePercentCritical": 10,
+    "DiskFreeGBWarning": 20,
+    "DiskFreeGBCritical": 10,
+    "MaxUptimeDays": 30,
+    "MinBuildNumber": 19041,
+    "MinOSVersion": "10.0"
+  },
+  "Reports": {
+    "OutputPath": "reports",
+    "IncludeHtml": true,
+    "IncludeJson": true,
+    "OpenInBrowser": true
+  },
+  "Logging": {
+    "LogPath": "logs",
+    "LogLevel": "Info",
+    "RetentionDays": 30
+  },
+  "ValidationModules": [
+    "System",
+    "Software",
+    "Drivers",
+    "Security"
+  ],
+  "UninstallRegistryPaths": [
+    "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*",
+    "HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*"
+  ]
+}
