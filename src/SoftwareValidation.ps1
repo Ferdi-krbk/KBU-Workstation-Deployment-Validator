@@ -47,7 +47,7 @@ function Get-KBUInstalledSoftware {
     $installed = @()
     foreach ($rp in $RegistryPaths) {
         try {
-            $items = Get-ItemProperty -LiteralPath $rp -ErrorAction SilentlyContinue
+            $items = Get-ItemProperty -Path $rp -ErrorAction SilentlyContinue
             if ($items) {
                 $installed += @($items | Where-Object { $_.DisplayName })
             }
@@ -102,6 +102,47 @@ function Find-KBUSoftware {
     return $null
 }
 
+function Find-KBUSoftwareFile {
+    <#
+    .SYNOPSIS
+        Search for a software executable at configured file paths.
+
+    .DESCRIPTION
+        Checks file paths defined in SoftwareDef.FilePaths for portable
+        or non-registry applications. Supports environment variables in paths.
+
+    .PARAMETER SoftwareDef
+        Software definition object with optional FilePaths array.
+    #>
+    param(
+        [PSCustomObject]$SoftwareDef
+    )
+
+    if (-not $SoftwareDef.FilePaths) { return $null }
+
+    foreach ($fp in $SoftwareDef.FilePaths) {
+        $expanded = [Environment]::ExpandEnvironmentVariables($fp)
+        if (Test-Path -LiteralPath $expanded -PathType Leaf) {
+            $version = "Portable"
+            try {
+                $fileInfo = Get-Item -LiteralPath $expanded -ErrorAction Stop
+                if ($fileInfo.VersionInfo.FileVersion) {
+                    $version = $fileInfo.VersionInfo.FileVersion
+                }
+            }
+            catch { }
+
+            Write-KBUInfo "Found portable software: $($SoftwareDef.Name) at $expanded"
+            return [PSCustomObject]@{
+                DisplayName    = $SoftwareDef.Name
+                DisplayVersion = $version
+                FilePath       = $expanded
+            }
+        }
+    }
+    return $null
+}
+
 function Test-KBUSoftware {
     <#
     .SYNOPSIS
@@ -133,6 +174,7 @@ function Test-KBUSoftware {
 
     foreach ($req in $Config.RequiredSoftware) {
         $found = Find-KBUSoftware -InstalledSoftware $installed -SoftwareDef $req
+        if (-not $found) { $found = Find-KBUSoftwareFile -SoftwareDef $req }
         $isInstalled = ($found -ne $null)
         $version     = if ($isInstalled -and $found.DisplayVersion) { $found.DisplayVersion } else { "N/A" }
         $detail      = if ($isInstalled) { "v$version" } else { "Not Installed" }
@@ -165,6 +207,7 @@ function Test-KBUSoftware {
     if ($Config.OptionalSoftware) {
         foreach ($opt in $Config.OptionalSoftware) {
             $found = Find-KBUSoftware -InstalledSoftware $installed -SoftwareDef $opt
+            if (-not $found) { $found = Find-KBUSoftwareFile -SoftwareDef $opt }
             $isInstalled = ($found -ne $null)
             $version     = if ($isInstalled -and $found.DisplayVersion) { $found.DisplayVersion } else { "N/A" }
             $detail      = if ($isInstalled) { "v$version" } else { "Not Installed" }

@@ -28,7 +28,11 @@
     {
       "Name": "AnyDesk",
       "Patterns": ["AnyDesk"],
-      "Blocking": false
+      "Blocking": false,
+      "FilePaths": [
+        "%USERPROFILE%\\Desktop\\AnyDesk.exe",
+        "%PUBLIC%\\Desktop\\AnyDesk.exe"
+      ]
     },
     {
       "Name": "enVision",
