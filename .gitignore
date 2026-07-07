@@ -8,9 +8,14 @@
 
 # HTML Reports
 reports/*.html
+reports/*.json
 
-# Keep reports directory
+# Log files
+logs/*.log
+
+# Keep report and log directories
 !reports/.gitkeep
+!logs/.gitkeep
 
 # Windows
 Thumbs.db
@@ -24,9 +29,6 @@ $RECYCLE.BIN/
 # PowerShell Profile
 profile.ps1
 
-# Log files
-*.log
-
 # Backup files
 *.bak
 *.tmp
@@ -39,6 +41,9 @@ packages/
 # Test
 TestResults/
 *.trx
+
+# Pester
+Pester/
 
 # Mac
 .DS_Store
